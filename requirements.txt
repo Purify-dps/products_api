@@ -14,3 +14,4 @@ virtualenv==20.0.35
 virtualenv-clone==0.5.4
 Werkzeug==1.0.1
 numpy==1.18.0
+pandas==1.0.4
