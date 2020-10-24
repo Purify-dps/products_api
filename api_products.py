@@ -62,6 +62,7 @@ def recommendationSystem(working_hours):
             'product' : my_row[0],
             'avg_energy_cons' : my_row[2],
             'co2_emissions' : my_row[3],
+            'savings_euros' : my_row[4]
             'rank' : index+1
         }
         new_dict.append(dicto)
