@@ -7,11 +7,6 @@ app = Flask(__name__)
 
 
 
-@app.route("/", methods=['GET'])
-def home():
-    return 'home'
-
-
 @app.route("/productlist", methods=['GET'])
 def productlist():
     data = pandas.read_excel('products_database.xlsx', sheet_name='Products')
@@ -20,7 +15,7 @@ def productlist():
     return jsonify({'products' : lists})
 
 
-@app.route("/findresult", methods=['POST'])
+@app.route("/findresult", methods=['GET'])
 def findresult():
     product = request.args.get('product')
     working_hours = request.args.get('working_hours')
