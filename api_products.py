@@ -15,7 +15,7 @@ def productlist():
     return jsonify({'products' : lists})
 
 
-@app.route("/findresult", methods=['GET'])
+@app.route("/findresult", methods=['POST'])
 def findresult():
     product = request.args.get('product')
     working_hours = request.args.get('working_hours')
