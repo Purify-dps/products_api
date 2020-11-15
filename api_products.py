@@ -20,63 +20,49 @@ app = Flask(__name__)
 @app.route("/findresult", methods=['POST'])
 def findresult():
     details = request.get_json()
-    products = details['products']
-    working_hours = details['working_hours']
-    result = calculation(products,working_hours)
+    products = details.get('products')
+    result = calculation(products)
     return jsonify(result)
 
-def calculation(products, working_hours):
+def calculation(products):
     column = []
     for product in products:
-        one_item = np.array([product,scrapper(product)])
-        one_item_list = one_item.tolist()
-        column.append(one_item_list)
+        product['avg_cons_per_day'] = scrapper(product.get('name'))
+        column.append(product)
+    
 
     lists = column 
+    #return lists
 
     returned_results = []
     for mylist in lists:
-        if("is not a device" not in mylist[1]):
-            avg_energy_cons = int(mylist[1]) * 360
-            co_emissions = (600 * avg_energy_cons * int(working_hours)) / 100
+        if("is not a device" !=  mylist.get('avg_cons_per_day')):
+            avg_energy_cons = int(mylist.get('avg_cons_per_day')) * 360
+            co_emissions = (600 * avg_energy_cons * int(mylist['working_hours'])) / 100
             savings_euros = co_emissions * 0.0132
-            my_array = {
-                'product' : mylist[0],
-                'avg_energy_cons' :  avg_energy_cons, 
-                'co2_emissions' : co_emissions,
-                'savings_euros' : savings_euros
-            }
-            returned_results.append(my_array)
+            
+            mylist['avg_energy_cons'] = avg_energy_cons
+            mylist['co2_emissions'] = co_emissions
+            mylist['savings_euros'] = savings_euros
+            returned_results.append(mylist)
         else:
-            returned_results.append(mylist[0]+' '+mylist[1])
-
-    sorted_list = recommendationSystem(returned_results, int(working_hours))
+            returned_results.append(mylist['name']+' '+mylist['avg_cons_per_day'])    
+    sorted_list = recommendationSystem(returned_results)
     return sorted_list
     
-def recommendationSystem(returned_results, working_hours):
-    new_list = []
+def recommendationSystem(returned_results):
+    sorted_list_without_msgs = []
     for result in returned_results:
         if("is not a device" not in result):
-            new_list.append(result)
+            sorted_list_without_msgs.append(result)
     
-    df = pandas.DataFrame(new_list)
-    df['rank'] = df.index + 1
-    df = df.sort_values(by='avg_energy_cons', ascending=False)
-    df = df.iloc[:3]
-    sorted_list = df.values.tolist()
-
+    sorted_list = sorted(sorted_list_without_msgs, key = lambda i: i['co2_emissions'],reverse=True)
     new_dict = []
 
     for index, my_row in enumerate(sorted_list):
-        dicto = {
-            'product' : my_row[0],
-            'avg_energy_cons' : my_row[1],
-            'co2_emissions' : my_row[2],
-            'savings_euros' : my_row[3],
-            'rank' : index+1
-        }
-        new_dict.append(dicto)
-    
+        my_row['rank'] = index+1 
+        new_dict.append(my_row)
+
     for result in returned_results:
         if("is not a device" in result):
             new_dict.append(result)
