@@ -74,7 +74,7 @@ def calculation(products):
     returned_results = []
     for mylist in lists:
         if("is not a device" !=  mylist.get('avg_cons_per_day')):
-            avg_energy_cons = int(mylist.get('avg_cons_per_day')) * 365
+            avg_energy_cons = (int(mylist.get('avg_cons_per_day')) * 365)/1000
             overall_avg_energy_cons = avg_energy_cons * int(mylist.get('number'))
             co_emissions = (600 * avg_energy_cons) / 100
             overall_co_emissions = co_emissions * int(mylist.get('number'))
