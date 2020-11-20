@@ -35,9 +35,9 @@ def findresult():
     total_savings = 0
     for device in result:
         if("is not found" not in device):
-            total_emissions = device['overall_co2_emissions'] + total_emissions
-            total_energy_cons = device['overall_avg_energy_cons'] + total_energy_cons
-            total_savings = device['overall_savings_euros'] + total_savings
+            total_emissions = device['overall_co2_emissions_per_device'] + total_emissions
+            total_energy_cons = device['overall_avg_energy_cons_per_device'] + total_energy_cons
+            total_savings = device['overall_savings_euros_per_device'] + total_savings
 
     
     exceloutput = list(filter(lambda k: 'is not found' not in k, result))
@@ -45,10 +45,12 @@ def findresult():
     df = pandas.DataFrame(exceloutput)
     #df = df.iloc[:1]
     #df = df.loc[:, df.columns != 'rank']
-    df['overall_co2_emissions'] = total_emissions
-    df['overall_avg_energy_cons'] = total_energy_cons
-    df['overall_savings_euros'] = total_savings
-    initiative = classify(total_emissions)
+    df['overall_co2_emissions_of_all_devices'] = total_emissions
+    df['overall_avg_energy_cons_of_all_devices'] = total_energy_cons
+    df['overall_savings_euros_of_all_devices'] = total_savings
+    
+    initiative = classify(total_emissions)  
+    #return jsonify(initiative) 
     df['initiative_number'] = initiative
     #return jsonify(classify(total_emissions)[0])
     if os.path.isfile('output.xlsx'):
@@ -112,9 +114,9 @@ def calculation(products):
             mylist['avg_energy_cons_per_year_per_device'] = avg_energy_cons
             mylist['co2_emissions_per_device'] = co_emissions
             mylist['savings_euros_per_device'] = savings_euros
-            mylist['overall_avg_energy_cons'] = overall_avg_energy_cons
-            mylist['overall_co2_emissions'] = overall_co_emissions
-            mylist['overall_savings_euros'] = overall_savings_euros
+            mylist['overall_avg_energy_cons_per_device'] = overall_avg_energy_cons
+            mylist['overall_co2_emissions_per_device'] = overall_co_emissions
+            mylist['overall_savings_euros_per_device'] = overall_savings_euros
             returned_results.append(mylist)
         else:
             returned_results.append(mylist['name']+' '+mylist['avg_cons_per_day'])    
@@ -127,7 +129,7 @@ def recommendationSystem(returned_results):
         if("is not found" not in result):
             sorted_list_without_msgs.append(result)
     
-    sorted_list = sorted(sorted_list_without_msgs, key = lambda i: i['overall_co2_emissions'],reverse=True)
+    sorted_list = sorted(sorted_list_without_msgs, key = lambda i: i['overall_co2_emissions_per_device'],reverse=True)
     new_dict = []
 
     for index, my_row in enumerate(sorted_list):
@@ -189,26 +191,32 @@ def scrapper(product):
                         return "is not found"
 
 def classify(overall_co2_emissions):
-    devices = pandas.read_excel("output.xlsx", index_col=None)
-    feature_names = ['overall_co2_emissions']
-    X = devices[feature_names]
-    y = devices['initiative_number']
-    
-    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+    if os.path.isfile('output.xlsx'):
+        if len(df) > 1:
+            devices = pandas.read_excel("output.xlsx", index_col=None)
+            feature_names = ['overall_co2_emissions_of_all_devices']
+            X = devices[feature_names]
+            y = devices['initiative_number']
+            
+            X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
 
-    scaler = MinMaxScaler()
-    X_train = scaler.fit_transform(X_train)
-    X_test = scaler.transform(X_test)
+            scaler = MinMaxScaler()
+            X_train = scaler.fit_transform(X_train)
+            X_test = scaler.transform(X_test)
 
-    
-    knn = KNeighborsClassifier()
-    knn.fit(X_train, y_train)
-    print('Accuracy of K-NN classifier on training set: {:.2f}'
-        .format(knn.score(X_train, y_train)))
-    print('Accuracy of K-NN classifier on test set: {:.2f}'
-        .format(knn.score(X_test, y_test)))
-    predicted =  knn.predict([[overall_co2_emissions]]).tolist()
-    return predicted[0]
+            
+            knn = KNeighborsClassifier()
+            knn.fit(X_train, y_train)
+            print('Accuracy of K-NN classifier on training set: {:.2f}'
+                .format(knn.score(X_train, y_train)))
+            print('Accuracy of K-NN classifier on test set: {:.2f}'
+                .format(knn.score(X_test, y_test)))
+            predicted =  knn.predict([[overall_co2_emissions]]).tolist()
+            return predicted[0]
+        else:
+            return randint(1,3)
+    else:
+        return randint(1,3)
 
 if __name__ == '__main__':
     app.run(debug=True)
