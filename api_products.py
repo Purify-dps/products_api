@@ -191,26 +191,26 @@ def scrapper(product):
                         return "is not found"
 
 def classify(overall_co2_emissions):
-    if os.path.isfile('output.xlsx'):
-        if len(df) > 1:
-            devices = pandas.read_excel("output.xlsx", index_col=None)
+    if os.path.isfile('output.xlsx'):    
+        devices = pandas.read_excel("output.xlsx", index_col=None)
+        if len(devices) > 1:
             feature_names = ['overall_co2_emissions_of_all_devices']
             X = devices[feature_names]
             y = devices['initiative_number']
-            
+                
             X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
 
             scaler = MinMaxScaler()
             X_train = scaler.fit_transform(X_train)
             X_test = scaler.transform(X_test)
 
-            
+                
             knn = KNeighborsClassifier()
             knn.fit(X_train, y_train)
             print('Accuracy of K-NN classifier on training set: {:.2f}'
-                .format(knn.score(X_train, y_train)))
+                    .format(knn.score(X_train, y_train)))
             print('Accuracy of K-NN classifier on test set: {:.2f}'
-                .format(knn.score(X_test, y_test)))
+                    .format(knn.score(X_test, y_test)))
             predicted =  knn.predict([[overall_co2_emissions]]).tolist()
             return predicted[0]
         else:
