@@ -8,7 +8,10 @@ import os
 from openpyxl import load_workbook
 from random import randint
 import re
-
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
 
 app = Flask(__name__)
 
@@ -36,7 +39,7 @@ def findresult():
             total_energy_cons = device['overall_avg_energy_cons'] + total_energy_cons
             total_savings = device['overall_savings_euros'] + total_savings
 
-    output = {'overall_results_all_devices':{'total_emissions_all_devices':total_emissions,'total_energy_cons_all_devices':total_energy_cons,'total_savings_all_devices':total_savings}, 'detailed_device_results' : result}
+    
     exceloutput = list(filter(lambda k: 'is not found' not in k, result))
     #return jsonify(exceloutput)
     df = pandas.DataFrame(exceloutput)
@@ -45,7 +48,9 @@ def findresult():
     df['overall_co2_emissions'] = total_emissions
     df['overall_avg_energy_cons'] = total_energy_cons
     df['overall_savings_euros'] = total_savings
-    df['initiative_number'] = randint(1,3)
+    initiative = classify(total_emissions)
+    df['initiative_number'] = initiative
+    #return jsonify(classify(total_emissions)[0])
     if os.path.isfile('output.xlsx'):
         df1 = pandas.read_excel("output.xlsx")
         if df1.empty:
@@ -65,7 +70,14 @@ def findresult():
         startrow = 0
         user = 0
         df['user_number'] = user + 1
-    
+
+    my_file = open("initiative.txt", "r")
+    content = my_file.read()
+    content_list = content.split("\"")
+    content_list = list(filter(None,content_list))
+    my_file.close() 
+    #return jsonify(content_list)   
+    output = {'overall_results_all_devices':{'total_emissions_all_devices':total_emissions,'total_energy_cons_all_devices':total_energy_cons,'total_savings_all_devices':total_savings}, 'detailed_device_results' : result, 'initiative' : {'initiative_number' : initiative, 'initiative_text' : content_list[initiative - 1]} }
     mode = 'w' if header else 'a'
     with pandas.ExcelWriter("output.xlsx", engine='openpyxl', mode='w') as writer:
         df.to_excel(writer, sheet_name='Sheet1', header=True, index=False, startrow=0)
@@ -92,7 +104,7 @@ def calculation(products):
         if("is not found" !=  mylist.get('avg_cons_per_day')):
             avg_energy_cons = float(mylist.get('avg_cons_per_day')) * 365
             overall_avg_energy_cons = avg_energy_cons * int(mylist.get('number'))
-            co_emissions = (600 * avg_energy_cons) / 100
+            co_emissions = (600 * avg_energy_cons)
             overall_co_emissions = co_emissions * int(mylist.get('number'))
             savings_euros = co_emissions * 0.0132
             overall_savings_euros = savings_euros * int(mylist.get('number'))
@@ -176,6 +188,27 @@ def scrapper(product):
                     except:
                         return "is not found"
 
+def classify(overall_co2_emissions):
+    devices = pandas.read_excel("output.xlsx", index_col=None)
+    feature_names = ['overall_co2_emissions']
+    X = devices[feature_names]
+    y = devices['initiative_number']
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, random_state=0)
+
+    scaler = MinMaxScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+
+    
+    knn = KNeighborsClassifier()
+    knn.fit(X_train, y_train)
+    print('Accuracy of K-NN classifier on training set: {:.2f}'
+        .format(knn.score(X_train, y_train)))
+    print('Accuracy of K-NN classifier on test set: {:.2f}'
+        .format(knn.score(X_test, y_test)))
+    predicted =  knn.predict([[overall_co2_emissions]]).tolist()
+    return predicted[0]
 
 if __name__ == '__main__':
     app.run(debug=True)
