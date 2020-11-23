@@ -93,7 +93,7 @@ def calculation(products):
     for product in products:
         myout = scrapper(product.get('name'))
         if("is not found" not in str(myout)):
-            product['avg_cons_per_day'] = myout / 1000
+            product['avg_cons_per_day'] =(myout / 1000) * int(product.get('working_hours'))
         else:
             product['avg_cons_per_day'] = myout
         column.append(product)
